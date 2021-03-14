@@ -1,6 +1,16 @@
 def dummy_function():
 	print("Stat tools hack entered.")
 
+import numpy as np
+from statsmodels.tools.validation import (
+    array_like,
+    bool_like,
+    dict_like,
+    float_like,
+    int_like,
+    string_like,
+)
+from statsmodels.tsa.tsatools import lagmat
 
 # this needs to be converted to a class like HetGoldfeldQuandt,
 # 3 different returns are a mess
