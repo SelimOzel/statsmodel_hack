@@ -10,7 +10,9 @@ from statsmodels.tools.validation import (
     int_like,
     string_like,
 )
+from statsmodels.regression.linear_model import OLS
 from statsmodels.tsa.tsatools import add_trend, lagmat
+from statsmodels.tsa.adfvalues import mackinnoncrit, mackinnonp
 
 # this needs to be converted to a class like HetGoldfeldQuandt,
 # 3 different returns are a mess

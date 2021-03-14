@@ -8,7 +8,7 @@ def main():
 
 	print("Entry point to the hack/port")
 	dummy_function()
-	adfuller(x)
+	print(adfuller(x))
 
 if __name__ == "__main__":
     main()
