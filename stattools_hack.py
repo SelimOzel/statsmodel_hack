@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Any, Optional
 
 def dummy_function():
 	print("Stat tools hack entered.")
@@ -234,6 +235,51 @@ def adfuller(
         else:
             return adfstat, pvalue, usedlag, nobs, critvalues, icbest
 
+
+def int_like(
+    value: Any, name: str, optional: bool = False, strict: bool = False
+) -> Optional[int]:
+    """
+    Convert to int or raise if not int_like
+
+    Parameters
+    ----------
+    value : object
+        Value to verify
+    name : str
+        Variable name for exceptions
+    optional : bool
+        Flag indicating whether None is allowed
+    strict : bool
+        If True, then only allow int or np.integer that are not bool. If False,
+        allow types that support integer division by 1 and conversion to int.
+
+    Returns
+    -------
+    converted : int
+        value converted to a int
+    """
+    if optional and value is None:
+        return None
+    is_bool_timedelta = isinstance(value, (bool, np.timedelta64))
+
+    if hasattr(value, "squeeze") and callable(value.squeeze):
+        value = value.squeeze()
+
+    if isinstance(value, (int, np.integer)) and not is_bool_timedelta:
+        return int(value)
+    elif not strict and not is_bool_timedelta:
+        try:
+            if value == (value // 1):
+                return int(value)
+        except Exception:
+            pass
+    extra_text = " or None" if optional else ""
+    raise TypeError(
+        "{0} must be integer_like (int or np.integer, but not bool"
+        " or timedelta64){1}".format(name, extra_text)
+    )
+
 # Obtained from statsmodels.tools.validation
 def array_like(
     obj,
@@ -356,3 +402,88 @@ def array_like(
     if contiguous:
         arr = np.ascontiguousarray(arr, dtype=dtype)
     return arr
+
+def string_like(value, name, optional=False, options=None, lower=True):
+    """
+    Check if object is string-like and raise if not
+
+    Parameters
+    ----------
+    value : object
+        Value to verify.
+    name : str
+        Variable name for exceptions.
+    optional : bool
+        Flag indicating whether None is allowed.
+    options : tuple[str]
+        Allowed values for input parameter `value`.
+    lower : bool
+        Convert all case-based characters in `value` into lowercase.
+
+    Returns
+    -------
+    str
+        The validated input
+
+    Raises
+    ------
+    TypeError
+        If the value is not a string or None when optional is True.
+    ValueError
+        If the input is not in ``options`` when ``options`` is set.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        extra_text = " or None" if optional else ""
+        raise TypeError("{0} must be a string{1}".format(name, extra_text))
+    if lower:
+        value = value.lower()
+    if options is not None and value not in options:
+        extra_text = "If not None, " if optional else ""
+        options_text = "'" + "', '".join(options) + "'"
+        msg = "{0}{1} must be one of: {2}".format(
+            extra_text, name, options_text
+        )
+        raise ValueError(msg)
+    return value
+
+def bool_like(value, name, optional=False, strict=False):
+    """
+    Convert to bool or raise if not bool_like
+
+    Parameters
+    ----------
+    value : object
+        Value to verify
+    name : str
+        Variable name for exceptions
+    optional : bool
+        Flag indicating whether None is allowed
+    strict : bool
+        If True, then only allow bool. If False, allow types that support
+        casting to bool.
+
+    Returns
+    -------
+    converted : bool
+        value converted to a bool
+    """
+    if optional and value is None:
+        return value
+    extra_text = " or None" if optional else ""
+    if strict:
+        if isinstance(value, bool):
+            return value
+        else:
+            raise TypeError("{0} must be a bool{1}".format(name, extra_text))
+
+    if hasattr(value, "squeeze") and callable(value.squeeze):
+        value = value.squeeze()
+    try:
+        return bool(value)
+    except Exception:
+        raise TypeError(
+            "{0} must be a bool (or bool-compatible)"
+            "{1}".format(name, extra_text)
+        )
