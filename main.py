@@ -1,4 +1,5 @@
 from stattools_hack import dummy_function
+from stattools_hack import adfuller
 
 def main():
 	# autoregressive process with y_t = alpha + rho*y_t-1 + e_t 
@@ -7,7 +8,7 @@ def main():
 
 	print("Entry point to the hack/port")
 	dummy_function()
-
+	adfuller(x)
 
 if __name__ == "__main__":
     main()
