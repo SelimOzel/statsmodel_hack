@@ -1,3 +1,5 @@
+import numpy as np
+
 def dummy_function():
 	print("Stat tools hack entered.")
 
@@ -231,3 +233,126 @@ def adfuller(
             return adfstat, pvalue, usedlag, nobs, critvalues
         else:
             return adfstat, pvalue, usedlag, nobs, critvalues, icbest
+
+# Obtained from statsmodels.tools.validation
+def array_like(
+    obj,
+    name,
+    dtype=np.double,
+    ndim=1,
+    maxdim=None,
+    shape=None,
+    order=None,
+    contiguous=False,
+    optional=False,
+):
+    """
+    Convert array-like to a ndarray and check conditions
+
+    Parameters
+    ----------
+    obj : array_like
+         An array, any object exposing the array interface, an object whose
+        __array__ method returns an array, or any (nested) sequence.
+    name : str
+        Name of the variable to use in exceptions
+    dtype : {None, numpy.dtype, str}
+        Required dtype. Default is double. If None, does not change the dtype
+        of obj (if present) or uses NumPy to automatically detect the dtype
+    ndim : {int, None}
+        Required number of dimensions of obj. If None, no check is performed.
+        If the numebr of dimensions of obj is less than ndim, additional axes
+        are inserted on the right. See examples.
+    maxdim : {int, None}
+        Maximum allowed dimension.  Use ``maxdim`` instead of ``ndim`` when
+        inputs are allowed to have ndim 1, 2, ..., or maxdim.
+    shape : {tuple[int], None}
+        Required shape obj.  If None, no check is performed. Partially
+        restricted shapes can be checked using None. See examples.
+    order : {'C', 'F', None}
+        Order of the array
+    contiguous : bool
+        Ensure that the array's data is contiguous with order ``order``
+    optional : bool
+        Flag indicating whether None is allowed
+
+    Returns
+    -------
+    ndarray
+        The converted input.
+
+    Examples
+    --------
+    Convert a list or pandas series to an array
+    >>> import pandas as pd
+    >>> x = [0, 1, 2, 3]
+    >>> a = array_like(x, 'x', ndim=1)
+    >>> a.shape
+    (4,)
+
+    >>> a = array_like(pd.Series(x), 'x', ndim=1)
+    >>> a.shape
+    (4,)
+
+    >>> type(a.orig)
+    pandas.core.series.Series
+
+    Squeezes singleton dimensions when required
+    >>> x = np.array(x).reshape((4, 1))
+    >>> a = array_like(x, 'x', ndim=1)
+    >>> a.shape
+    (4,)
+
+    Right-appends when required size is larger than actual
+    >>> x = [0, 1, 2, 3]
+    >>> a = array_like(x, 'x', ndim=2)
+    >>> a.shape
+    (4, 1)
+
+    Check only the first and last dimension of the input
+    >>> x = np.arange(4*10*4).reshape((4, 10, 4))
+    >>> y = array_like(x, 'x', ndim=3, shape=(4, None, 4))
+
+    Check only the first two dimensions
+    >>> z = array_like(x, 'x', ndim=3, shape=(4, 10))
+
+    Raises ValueError if constraints are not satisfied
+    >>> z = array_like(x, 'x', ndim=2)
+    Traceback (most recent call last):
+     ...
+    ValueError: x is required to have ndim 2 but has ndim 3
+
+    >>> z = array_like(x, 'x', shape=(10, 4, 4))
+    Traceback (most recent call last):
+     ...
+    ValueError: x is required to have shape (10, 4, 4) but has shape (4, 10, 4)
+
+    >>> z = array_like(x, 'x', shape=(None, 4, 4))
+    Traceback (most recent call last):
+     ...
+    ValueError: x is required to have shape (*, 4, 4) but has shape (4, 10, 4)
+    """
+    if optional and obj is None:
+        return None
+    arr = np.asarray(obj, dtype=dtype, order=order)
+    if maxdim is not None:
+        if arr.ndim > maxdim:
+            msg = "{0} must have ndim <= {1}".format(name, maxdim)
+            raise ValueError(msg)
+    elif ndim is not None:
+        if arr.ndim > ndim:
+            arr = _right_squeeze(arr, stop_dim=ndim)
+        elif arr.ndim < ndim:
+            arr = np.reshape(arr, arr.shape + (1,) * (ndim - arr.ndim))
+        if arr.ndim != ndim:
+            msg = "{0} is required to have ndim {1} but has ndim {2}"
+            raise ValueError(msg.format(name, ndim, arr.ndim))
+    if shape is not None:
+        for actual, req in zip(arr.shape, shape):
+            if req is not None and actual != req:
+                req_shape = str(shape).replace("None, ", "*, ")
+                msg = "{0} is required to have shape {1} but has shape {2}"
+                raise ValueError(msg.format(name, req_shape, arr.shape))
+    if contiguous:
+        arr = np.ascontiguousarray(arr, dtype=dtype)
+    return arr
